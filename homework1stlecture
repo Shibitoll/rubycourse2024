@@ -1,0 +1,75 @@
+require 'date'
+
+class Student
+  attr_accessor :surname, :name, :date_of_birth
+  @@students = []
+
+  def initialize(surname, name, date_of_birth)
+    date_of_birth = Date.parse(date_of_birth) if date_of_birth.is_a?(String)
+    raise ArgumentError, "Date of birth cannot be in the future: #{date_of_birth}." if date_of_birth > Date.today
+
+    @surname = surname
+    @name = name
+    @date_of_birth = date_of_birth
+    @@students << self
+  end
+
+  def self.students
+    @@students
+  end
+
+  def self.add_student(surname, name, date_of_birth)
+    date_of_birth = Date.parse(date_of_birth) if date_of_birth.is_a?(String)
+    if @@students.any? { |student| student.surname == surname && student.name == name && student.date_of_birth == date_of_birth }
+      raise ArgumentError, "Student with name #{name}, surname #{surname}, and date of birth #{date_of_birth} already exists."
+    end
+
+    Student.new(surname, name, date_of_birth)
+  end
+
+  def self.remove_student(surname, name, date_of_birth)
+    date_of_birth = Date.parse(date_of_birth) if date_of_birth.is_a?(String)
+    student_to_remove = @@students.find { |student| student.surname == surname && student.name == name && student.date_of_birth == date_of_birth }
+    raise ArgumentError, "No student found with surname #{surname}, name #{name}, and date of birth #{date_of_birth}" unless student_to_remove
+
+    @@students.delete(student_to_remove)
+  end
+
+  def calculate_age(at_date = Time.now)
+    age = (at_date - @date_of_birth.to_time.utc) / (60 * 60 * 24 * 365.25)
+    age.to_i
+  end
+
+
+  def self.get_students_by_age(age)
+    students_by_age = @@students.select do |student|
+      student_age = student.calculate_age
+      student_age == age
+    end
+    raise ArgumentError, "No students with age #{age} found." if students_by_age.empty?
+
+    students_by_age
+  end
+
+  def self.get_students_by_name(input_name)
+    students_by_name = @@students.select { |student| student.name == input_name }
+    raise ArgumentError, "No students with name #{input_name} found." if students_by_name.empty?
+
+    students_by_name
+  end
+end
+
+Student.add_student('Bondariev', 'Ivan', '2005-07-05')
+Student.add_student('Doe', 'Jane', '1998-03-12')
+Student.add_student('Brown', 'Charlie', '2001-07-23')
+
+Student.remove_student('Doe', 'Jane', '1998-03-12')
+
+ivan = Student.students.find { |student| student.surname == 'Bondariev' && student.name == 'Ivan' }
+puts "Ivan Bondariev's age: #{ivan.calculate_age}"
+
+students_aged_23 = Student.get_students_by_age(23)
+puts "Students aged 23: #{students_aged_23.map { |s| s.name + ' ' + s.surname }.join(', ')}"
+
+students_named_charlie = Student.get_students_by_name('Charlie')
+puts "Students named Charlie: #{students_named_charlie.map { |s| s.surname + ' ' + s.name }.join(', ')}"
