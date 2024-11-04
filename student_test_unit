@@ -1,0 +1,79 @@
+require 'minitest/autorun'
+require 'minitest/reporters'
+require_relative 'homework1'
+
+unless ENV['RM_INFO']
+  require 'minitest/reporters'
+  Minitest::Reporters.use! [
+                             Minitest::Reporters::SpecReporter.new,
+                             Minitest::Reporters::HtmlReporter.new(
+                               reports_dir: 'test/reports',
+                               report_filename: 'test_results_spec.html',
+                               add_timestamp: true
+                             )
+                           ]
+end
+class TestStudent < Minitest::Test
+  def setup
+    Student.class_variable_set(:@@students, [])
+    Student.add_student('Bondariev', 'Ivan', '2005-07-05')
+    Student.add_student('Doe', 'Jane', '1998-03-12')
+    Student.add_student('Brown', 'Charlie', '2001-07-23')
+  end
+
+  def test_add_student
+    Student.add_student('Aliev', 'Alex', '1999-08-10')
+    assert_equal(4, Student.students.size)
+  end
+
+  def test_add_duplicate_student
+
+    assert_raises(ArgumentError) do
+      Student.add_student('Bondariev', 'Ivan', '2005-07-05')
+    end
+  end
+
+  def test_remove_student
+    Student.remove_student('Bondariev', 'Ivan', '2005-07-05')
+    assert_equal(2, Student.students.size) # Має залишитися 2 студенти
+  end
+
+  def test_remove_nonexistent_student
+    assert_raises(ArgumentError) do
+      Student.remove_student('Wiliam', 'John', '2020-01-01')
+    end
+  end
+
+  def test_calculate_age
+    ivan = Student.students.find { |student| student.surname == 'Bondariev' && student.name == 'Ivan' }
+    age = ivan.calculate_age
+    expected_age = Date.today.year - 2005 - (Date.today < Date.new(Date.today.year, 7, 5) ? 1 : 0)
+    assert_equal(expected_age, age)
+  end
+
+  def test_get_students_by_age
+    students = Student.get_students_by_age(23)
+    refute_empty(students)
+  end
+
+  def test_get_students_by_age_no_match
+    assert_raises(ArgumentError) do
+      Student.get_students_by_age(100)
+    end
+  end
+
+  def test_get_students_by_name
+    students = Student.get_students_by_name('Charlie')
+    refute_empty(students)
+  end
+
+  def test_get_students_by_name_no_match
+    assert_raises(ArgumentError) do
+      Student.get_students_by_name('Wiliam')
+    end
+  end
+
+  def teardown
+    Student.students.clear
+  end
+end
